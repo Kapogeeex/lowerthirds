@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kapogeee X Lower Thirds - GitHub Dashboard</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0d0d0d;
+      color: white;
+      padding: 30px;
+      max-width: 900px;
+      margin: auto;
+    }
+    h1 {
+      color: gold;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    textarea, input {
+      width: 100%;
+      margin-bottom: 12px;
+      padding: 10px;
+      background: #1a1a1a;
+      border: 1px solid #444;
+      border-radius: 6px;
+      color: white;
+    }
+    button {
+      padding: 10px 16px;
+      margin-right: 10px;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .save { background: gold; color: black; }
+    .push { background: #2e8bff; color: white; }
+    .preview {
+      border: 1px solid #333;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 15px;
+      margin-top: 20px;
+      border-radius: 8px;
+    }
+    .text-gold { color: gold; }
+    .ref { color: #ccc; font-size: 14px; }
+    #status { margin-top: 10px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>📺 Kapogeee X Scrolling Text Editor (GitHub Live)</h1>
+
+  <label><b>Scrolling Text</b></label>
+  <textarea id="scrollText" rows="3">🔥 Welcome to Fire Praise Live | Subscribe | Follow @Kapogeee_x</textarea>
+
+  <label><b>Your GitHub Token (stored only in browser)</b></label>
+  <input id="token" placeholder="ghp_..." />
+
+  <button class="save" onclick="downloadConfig()">💾 Save Locally</button>
+  <button class="push" onclick="pushToGitHub()">🚀 Push to GitHub</button>
+
+  <div class="preview">
+    <div class="text-gold" id="livePreview"></div>
+    <div class="ref">Live preview of your scrolling text</div>
+  </div>
+
+  <div id="status"></div>
+
+  <script>
+    const scrollInput = document.getElementById("scrollText");
+    const preview = document.getElementById("livePreview");
+    const tokenInput = document.getElementById("token");
+    const status = document.getElementById("status");
+
+    // Restore token from localStorage
+    tokenInput.value = localStorage.getItem("kapo_token") || "";
+
+    scrollInput.addEventListener("input", () => {
+      preview.textContent = scrollInput.value;
+    });
+
+    function downloadConfig() {
+      const blob = new Blob([JSON.stringify({ text: scrollInput.value }, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "scroll-config.json";
+      a.click();
+    }
+
+    async function pushToGitHub() {
+      const token = tokenInput.value.trim();
+      if (!token) return alert("Please enter your GitHub token.");
+
+      localStorage.setItem("kapo_token", token);
+      const content = btoa(unescape(encodeURIComponent(JSON.stringify({ text: scrollInput.value }, null, 2))));
+
+      status.textContent = "Pushing to GitHub...";
+      try {
+        const res = await fetch("https://api.github.com/repos/Kapogeeex/lowerthirds/contents/config/scroll-config.json", {
+          method: "GET",
+          headers: { Authorization: "token " + token }
+        });
+        const { sha } = await res.json();
+
+        const push = await fetch("https://api.github.com/repos/Kapogeeex/lowerthirds/contents/config/scroll-config.json", {
+          method: "PUT",
+          headers: {
+            Authorization: "token " + token,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            message: "🔁 Update scroll-config.json via dashboard",
+            content,
+            sha
+          })
+        });
+
+        const result = await push.json();
+        if (result.content) {
+          status.innerHTML = "<span style='color:lime'>✅ Successfully pushed to GitHub</span>";
+        } else {
+          throw new Error(result.message || "Unknown error");
+        }
+      } catch (err) {
+        status.innerHTML = "<span style='color:red'>❌ Error: " + err.message + "</span>";
+      }
+    }
+
+    // Show initial preview
+    preview.textContent = scrollInput.value;
+  </script>
+</body>
+</html>
